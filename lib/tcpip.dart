@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -40,4 +41,23 @@ Future<Future<void> Function()> server(InternetAddress address, int port) async 
     await server.close();
     print('server is closed');
   };
+}
+
+Future<void> client(final int id) async {
+  final socket = await Socket.connect('127.0.0.1', 8080);
+
+  final requestBytes = codec.encoder.convert(<String, Object?>{
+    'id': id,
+    'message': 'Hello, server!. I am a client $id',
+  });
+  socket.add(requestBytes);
+
+  final completer = Completer<JsonMap>();
+  final sub = socket.map(codec.decoder.convert).listen(completer.complete);
+  final response = await completer.future;
+  print('< ${response['message']}');
+
+  await sub.cancel();
+  await socket.close();
+  socket.destroy();
 }
